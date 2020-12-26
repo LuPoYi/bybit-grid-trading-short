@@ -1,0 +1,13 @@
+{
+  "name": "bybit-grid-trading",
+  "version": "1.0.0",
+  "main": "main.js",
+  "author": "Bob <maydaybob2000@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bybit-api": "git+https://github.com/LuPoYi/bybit-api.git",
+    "dotenv": "^8.2.0",
+    "inquirer": "^7.3.3",
+    "node-telegram-bot-api": "^0.51.0"
+  }
+}
