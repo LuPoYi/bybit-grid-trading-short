@@ -4,6 +4,8 @@ const dotenv = require('dotenv')
 const websocketSubscribe = require('./src/websocket')
 const settings = require('./settings.json')
 const { priceList, step, symbol, high, low, grids, totalQty, qty } = settings
+// TODO: constant
+// TODO: check available balance is enougth
 
 dotenv.config()
 const API_KEY = process.env.API_KEY
@@ -58,11 +60,10 @@ const main = async () => {
       reduce_only: false,
       time_in_force: 'GoodTillCancel',
     }
-    await restClient.placeActiveOrder(params)
-    console.log(`[IMP] Place Limit ${side} ${price} ${qty}`)
+    const result = await restClient.placeActiveOrder(params)
+    console.log(`[IMP] Place Limit ${side} ${price}`)
   }
 
-  // do the market
   // Get bybit position
   const positionResponse = await restClient.getPosition({ symbol: symbol })
   if (['None', 'Sell'].includes(positionResponse?.result?.side)) {
@@ -71,9 +72,9 @@ const main = async () => {
     throw `getPosition API fail or position is not Sell`
   }
 
+  // Calculate `expectPosition` - from current buy order
   let expectPosition = 0
   const orderResponse2 = await restClient.queryActiveOrder({ symbol: symbol })
-
   for (const item of orderResponse2?.result) {
     if (
       item.order_status === 'New' &&
@@ -85,6 +86,8 @@ const main = async () => {
     }
   }
 
+  console.log('expectPosition', expectPosition, 'currentPosition', currentPosition)
+  // Place makret order (position)
   if (expectPosition > currentPosition) {
     const marketQty = parseInt(expectPosition - currentPosition)
     console.log('marketQty', marketQty)
@@ -104,7 +107,7 @@ const main = async () => {
   console.log('priceList', priceList)
 
   // Final: After every order is placed, start websocket
-  // websocketSubscribe({ key: API_KEY, secret: PRIVATE_KEY })
+  websocketSubscribe({ key: API_KEY, secret: PRIVATE_KEY, priceList: priceList })
 }
 
 try {
