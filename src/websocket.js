@@ -1,7 +1,7 @@
 const { WebsocketClient, RestClient, DefaultLogger } = require('bybit-api')
 const { getNewOrderPriceAndSide } = require('./helper')
 
-const websocketSubscribe = ({ key, secret, priceList }) => {
+const websocketSubscribe = ({ key, secret, livenet, priceList }) => {
   console.log('Websocket', 'Subscribe!')
   DefaultLogger.silly = () => {}
 

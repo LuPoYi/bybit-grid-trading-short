@@ -1,3 +1,4 @@
+const readline = require('readline')
 const { RestClient } = require('bybit-api')
 const dotenv = require('dotenv')
 
@@ -5,17 +6,29 @@ const websocketSubscribe = require('./src/websocket')
 const settings = require('./settings.json')
 const { priceList, symbol, qty } = settings
 
-const { getShouldPlacePriceList, getShouldPlacePosition } = require('./src/helper')
+const {
+  getShouldPlacePriceList,
+  getShouldPlacePosition,
+  areYouSureQuestion,
+} = require('./src/helper')
 // TODO: check available balance is enougth
 
 dotenv.config()
 const API_KEY = process.env.API_KEY
 const PRIVATE_KEY = process.env.PRIVATE_KEY
-const restClient = new RestClient(API_KEY, PRIVATE_KEY)
+const LIVENET = process.env.LIVENET
+const restClient = new RestClient(API_KEY, PRIVATE_KEY, LIVENET)
 
 const main = async () => {
-  let currentPosition
-  let shouldPlacePriceList
+  console.log('API_KEY', API_KEY)
+  console.log('LIVENET', LIVENET)
+  console.log('symbol', symbol)
+  console.log('priceList', priceList)
+
+  const ans = await areYouSureQuestion()
+  if (ans !== 'Y') {
+    process.exit()
+  }
 
   // Get bybit latest price
   const latestInformationResponse = await restClient.getLatestInformation({ symbol: symbol })
@@ -24,7 +37,10 @@ const main = async () => {
   console.log('Latest Price', latestPrice)
 
   // Place Limit order
-  shouldPlacePriceList = await getShouldPlacePriceList({ latestPrice: latestPrice })
+  const shouldPlacePriceList = await getShouldPlacePriceList({
+    restClient: restClient,
+    latestPrice: latestPrice,
+  })
   for (const price of shouldPlacePriceList) {
     const side = price > latestPrice ? 'Sell' : 'Buy'
     const params = {
@@ -41,7 +57,7 @@ const main = async () => {
   }
 
   // Place makret order (position)
-  const shouldPlacePosition = await getShouldPlacePosition()
+  const shouldPlacePosition = await getShouldPlacePosition({ restClient: restClient })
   if (shouldPlacePosition > 0) {
     const marketQty = parseInt(shouldPlacePosition)
     const params = {
@@ -58,7 +74,7 @@ const main = async () => {
   console.log('priceList', priceList)
 
   // Final: After every order is placed, start websocket
-  websocketSubscribe({ key: API_KEY, secret: PRIVATE_KEY, priceList: priceList })
+  websocketSubscribe({ key: API_KEY, secret: PRIVATE_KEY, priceList: priceList, livenet: LIVENET })
 }
 
 try {

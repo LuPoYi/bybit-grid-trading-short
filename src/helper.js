@@ -1,12 +1,6 @@
-const { RestClient } = require('bybit-api')
-const dotenv = require('dotenv')
+const readline = require('readline')
 const settings = require('../settings.json')
 const { priceList, symbol, qty } = settings
-
-dotenv.config()
-const API_KEY = process.env.API_KEY
-const PRIVATE_KEY = process.env.PRIVATE_KEY
-const restClient = new RestClient(API_KEY, PRIVATE_KEY)
 
 const getNewOrderPriceAndSide = ({ price, side, priceList }) => {
   let isShouldPlaceNewOrder = false
@@ -27,7 +21,7 @@ const getNewOrderPriceAndSide = ({ price, side, priceList }) => {
   return { isShouldPlaceNewOrder, newPrice, newSide }
 }
 
-const getShouldPlacePriceList = async ({ latestPrice }) => {
+const getShouldPlacePriceList = async ({ restClient, latestPrice }) => {
   // Get bybit current unfiled orders
   let bybitUnfilledPriceList = []
   const orderResponse = await restClient.queryActiveOrder({ symbol: symbol })
@@ -51,7 +45,7 @@ const getShouldPlacePriceList = async ({ latestPrice }) => {
   return currentNoOrderPriceList.filter((price) => price !== closestPrice)
 }
 
-const getShouldPlacePosition = async () => {
+const getShouldPlacePosition = async ({ restClient }) => {
   // Get bybit position
   let currentPosition = 0
   const positionResponse = await restClient.getPosition({ symbol: symbol })
@@ -79,8 +73,23 @@ const getShouldPlacePosition = async () => {
   return expectPosition - currentPosition
 }
 
+function areYouSureQuestion() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+
+  return new Promise((resolve) =>
+    rl.question('Are you sure? (Y/N) ', (ans) => {
+      rl.close()
+      resolve(ans)
+    })
+  )
+}
+
 module.exports = {
   getNewOrderPriceAndSide,
   getShouldPlacePriceList,
   getShouldPlacePosition,
+  areYouSureQuestion,
 }
