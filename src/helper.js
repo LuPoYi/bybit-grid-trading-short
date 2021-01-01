@@ -23,6 +23,7 @@ const getShouldPlacePriceList = async ({ restClient, latestPrice, priceList, sym
   // Get bybit current unfiled orders
   let bybitUnfilledPriceList = []
   const orderResponse = await restClient.queryActiveOrder({ symbol: symbol })
+  console.log('orderResponse', orderResponse)
   for (const item of orderResponse?.result) {
     if (
       item.order_status === 'New' &&

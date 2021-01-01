@@ -5,8 +5,8 @@ const websocketSubscribe = ({ key, secret, livenet, priceList }) => {
   console.log('Websocket', 'Subscribe!')
   DefaultLogger.silly = () => {}
 
-  const restClient = new RestClient(key, secret)
-  const ws = new WebsocketClient({ key, secret }, DefaultLogger)
+  const restClient = new RestClient(key, secret, livenet)
+  const ws = new WebsocketClient({ key, secret, livenet }, DefaultLogger)
 
   ws.subscribe(['order'])
 
