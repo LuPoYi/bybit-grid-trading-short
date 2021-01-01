@@ -40,6 +40,9 @@ const main = async () => {
   const shouldPlacePriceList = await getShouldPlacePriceList({
     restClient: restClient,
     latestPrice: latestPrice,
+    priceList: priceList,
+    symbol: symbol,
+    qty: qty,
   })
   for (const price of shouldPlacePriceList) {
     const side = price > latestPrice ? 'Sell' : 'Buy'
@@ -57,7 +60,12 @@ const main = async () => {
   }
 
   // Place makret order (position)
-  const shouldPlacePosition = await getShouldPlacePosition({ restClient: restClient })
+  const shouldPlacePosition = await getShouldPlacePosition({
+    restClient: restClient,
+    priceList: priceList,
+    symbol: symbol,
+    qty: qty,
+  })
   if (shouldPlacePosition > 0) {
     const marketQty = parseInt(shouldPlacePosition)
     const params = {

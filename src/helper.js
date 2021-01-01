@@ -1,6 +1,4 @@
 const readline = require('readline')
-const settings = require('../settings.json')
-const { priceList, symbol, qty } = settings
 
 const getNewOrderPriceAndSide = ({ price, side, priceList }) => {
   let isShouldPlaceNewOrder = false
@@ -21,7 +19,7 @@ const getNewOrderPriceAndSide = ({ price, side, priceList }) => {
   return { isShouldPlaceNewOrder, newPrice, newSide }
 }
 
-const getShouldPlacePriceList = async ({ restClient, latestPrice }) => {
+const getShouldPlacePriceList = async ({ restClient, latestPrice, priceList, symbol, qty }) => {
   // Get bybit current unfiled orders
   let bybitUnfilledPriceList = []
   const orderResponse = await restClient.queryActiveOrder({ symbol: symbol })
@@ -45,7 +43,7 @@ const getShouldPlacePriceList = async ({ restClient, latestPrice }) => {
   return currentNoOrderPriceList.filter((price) => price !== closestPrice)
 }
 
-const getShouldPlacePosition = async ({ restClient }) => {
+const getShouldPlacePosition = async ({ restClient, priceList, symbol, qty }) => {
   // Get bybit position
   let currentPosition = 0
   const positionResponse = await restClient.getPosition({ symbol: symbol })
