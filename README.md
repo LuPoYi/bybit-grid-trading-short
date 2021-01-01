@@ -1,0 +1,1 @@
+- Change your leverage to 1x

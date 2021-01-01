@@ -3,8 +3,9 @@ const dotenv = require('dotenv')
 
 const websocketSubscribe = require('./src/websocket')
 const settings = require('./settings.json')
-const { priceList, step, symbol, high, low, grids, totalQty, qty } = settings
-// TODO: constant
+const { priceList, symbol, qty } = settings
+
+const { getShouldPlacePriceList, getShouldPlacePosition } = require('./src/helper')
 // TODO: check available balance is enougth
 
 dotenv.config()
@@ -14,7 +15,6 @@ const restClient = new RestClient(API_KEY, PRIVATE_KEY)
 
 const main = async () => {
   let currentPosition
-  let currentNoOrderPriceList
   let shouldPlacePriceList
 
   // Get bybit latest price
@@ -23,32 +23,8 @@ const main = async () => {
     ?.last_price
   console.log('Latest Price', latestPrice)
 
-  // Get bybit current unfiled orders
-  let bybitUnfilledPriceList = []
-  const orderResponse = await restClient.queryActiveOrder({ symbol: symbol })
-  for (const item of orderResponse?.result) {
-    if (
-      item.order_status === 'New' &&
-      item.qty === qty &&
-      priceList.includes(parseFloat(item.price))
-    ) {
-      bybitUnfilledPriceList.push(parseFloat(item.price))
-    }
-  }
-
-  // Get price list of no order
-  currentNoOrderPriceList = priceList.filter((p) => !bybitUnfilledPriceList.includes(p))
-
-  const closestPrice = currentNoOrderPriceList.reduce(function (prev, curr) {
-    return Math.abs(curr - latestPrice) < Math.abs(prev - latestPrice) ? curr : prev
-  })
-  console.log('currentNoOrderPriceList', currentNoOrderPriceList)
-
-  // Find which prices should place new order
-  shouldPlacePriceList = currentNoOrderPriceList.filter((price) => price !== closestPrice)
-  console.log('shouldPlacePriceList', shouldPlacePriceList)
-
-  // Place order
+  // Place Limit order
+  shouldPlacePriceList = await getShouldPlacePriceList({ latestPrice: latestPrice })
   for (const price of shouldPlacePriceList) {
     const side = price > latestPrice ? 'Sell' : 'Buy'
     const params = {
@@ -64,33 +40,10 @@ const main = async () => {
     console.log(`[IMP] Place Limit ${side} ${price}`)
   }
 
-  // Get bybit position
-  const positionResponse = await restClient.getPosition({ symbol: symbol })
-  if (['None', 'Sell'].includes(positionResponse?.result?.side)) {
-    currentPosition = positionResponse.result.size
-  } else {
-    throw `getPosition API fail or position is not Sell`
-  }
-
-  // Calculate `expectPosition` - from current buy order
-  let expectPosition = 0
-  const orderResponse2 = await restClient.queryActiveOrder({ symbol: symbol })
-  for (const item of orderResponse2?.result) {
-    if (
-      item.order_status === 'New' &&
-      item.qty === qty &&
-      item.side === 'Buy' &&
-      priceList.includes(parseFloat(item.price))
-    ) {
-      expectPosition += qty
-    }
-  }
-
-  console.log('expectPosition', expectPosition, 'currentPosition', currentPosition)
   // Place makret order (position)
-  if (expectPosition > currentPosition) {
-    const marketQty = parseInt(expectPosition - currentPosition)
-    console.log('marketQty', marketQty)
+  const shouldPlacePosition = await getShouldPlacePosition()
+  if (shouldPlacePosition > 0) {
+    const marketQty = parseInt(shouldPlacePosition)
     const params = {
       side: 'Sell',
       symbol: symbol,
@@ -102,8 +55,6 @@ const main = async () => {
     await restClient.placeActiveOrder(params)
     console.log(`[IMP] Place Market ${marketQty}`)
   }
-  console.log('expectPosition', expectPosition)
-  console.log('currentPosition', currentPosition)
   console.log('priceList', priceList)
 
   // Final: After every order is placed, start websocket

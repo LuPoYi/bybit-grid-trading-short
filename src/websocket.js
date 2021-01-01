@@ -27,12 +27,19 @@ const websocketSubscribe = ({ key, secret, priceList }) => {
           ) {
             continue
           }
+          const sign = side === 'Sell' ? '↗↗↗' : '↘↘↘'
 
           const { isShouldPlaceNewOrder, newPrice, newSide } = getNewOrderPriceAndSide({
             price,
             side,
             priceList,
           })
+
+          console.log(
+            `[FIL] ${sign} ${side} ${price} -> ${
+              isShouldPlaceNewOrder ? `${newSide} ${newPrice}` : 'Pass'
+            }`
+          )
 
           if (isShouldPlaceNewOrder) {
             // check bybit order
@@ -55,8 +62,10 @@ const websocketSubscribe = ({ key, secret, priceList }) => {
               reduce_only: false,
               time_in_force: 'GoodTillCancel',
             }
-            await restClient.placeActiveOrder(params)
-            console.log(`[IMP] Place Limit ${newSide} ${newPrice} - from ${side} ${price}`)
+            const orderResult = await restClient.placeActiveOrder(params)
+            console.log(
+              `[PLA] ${sign} ${side} ${price} -> ${newSide} ${newPrice} ${orderResult?.['ret_msg']}`
+            )
           }
         }
         break
